@@ -5,6 +5,7 @@ import requests
 import re
 import sqlite3
 from tkinter.messagebox import *
+import random
 
 
 def createDB(cur):
@@ -12,7 +13,7 @@ def createDB(cur):
     cur = conn.cursor()
     try:
         #Create wishlist db table
-        cur.execute("CREATE TABLE if not exists Wishlist(imdbID VARCHAR(9) PRIMARY KEY, Title VARCHAR(50), Director VARCHAR(20), Cast VARCHAR(100), Plot VARCHAR(200), Release VARCHAR(15), AllInfo VARCHAR(500))")
+        cur.execute("CREATE TABLE if not exists Wishlist(Title VARCHAR(50) PRIMARY KEY, Director VARCHAR(20), Cast VARCHAR(100), Plot VARCHAR(200), Release VARCHAR(15), AllInfo VARCHAR(500))")
     except:
         showerror("Error creating Wishlist")
 
@@ -40,80 +41,32 @@ class MovieDBApplication(Frame):
         LogoLabel.grid(row = 1, column = 1, columnspan = 4, pady = 10, padx = 10)        
         SearchLabel = Label(self.SearchFrame, text = "Search Films:")
         SearchLabel.grid(row = 2, column = 1)
-        SearchEntry = Entry(self.SearchFrame)
-        SearchEntry.grid(row = 2, column = 2, padx = 10)
+        self.SearchEntry = Entry(self.SearchFrame)
+        self.SearchEntry.grid(row = 2, column = 2, padx = 10)
         SAPI.set("Search API 1")
         SearchAPI = OptionMenu(self.SearchFrame, SAPI, "Search API 1", "Search API 2")
         SearchAPI.grid(row = 2, column = 3)
-        GoButton = Button(self.SearchFrame, text = "Go",command = lambda:self.SearchFilm(SearchEntry))
-        GoButton.grid(row = 2, column = 4)
+        GoButton = Button(self.SearchFrame, text = "Go",command = lambda:self.SearchFilm())
+        GoButton.grid(row = 2, column = 4, padx = 5)
         WishlistButton = Button(self.SearchFrame, text = "WishList", command = lambda:self.SearchToWishlist())
         WishlistButton.grid(row = 3, column = 2, pady = 5)
+        RandomButton = Button(self.SearchFrame, text = "Random", command = lambda:self.GetRandomFilm())
+        RandomButton.grid(row = 3, column = 3)
         self.SearchFrame.grid()
 
 
-    def SearchFilm(self, SearchEntry):
-        if SAPI.get() == "Search API 1":
-            #Get data from the omdb api
-            api = 'http://www.omdbapi.com/?'
-            key = '&apikey=e0ad0310'
-            url = api + urllib.parse.urlencode({'t': SearchEntry.get()}) + key
-            data = requests.get(url).json()
-
-            #Put data into a readable string with line spaces
-            filmInfo = ""
-            for each in data:
-                try:
-                    filmInfo = filmInfo + str(each + ": " + data[each]) + "\n"
-                except:
-                    pass
-
-            #Set displays to use for textvariable meaning it can change when reopened
-            TitleDisplay.set("N/A")
-            DirectorDisplay.set("N/A")
-            CastDisplay.set("N/A")
-            PlotDisplay.set("N/A")
-            ReleaseDisplay.set("N/A")
-            fi = re.split(': |\n', filmInfo)
-            for i in range(0, len(fi)):
-                if fi[i] == "imdbID":
-                    ID.set(fi[i+1])
-                if fi[i] == "Title":
-                    TitleDisplay.set(fi[i+1])
-                if fi[i] == "Director":
-                    DirectorDisplay.set(fi[i+1])
-                if fi[i] == "Actors":
-                    CastDisplay.set(fi[i+1])
-                if fi[i] == "Plot":
-                    PlotDisplay.set(fi[i+1])
-                if fi[i] == "Released":
-                    ReleaseDisplay.set(fi[i+1])
-                if fi[i] == "Error":
-                    ErrorDisplay.set("Error: " + fi[i+1])
-                AllDisplay.set(filmInfo) 
+    def SearchFilm(self):
+        #Set error for if no movie found
+        if self.SearchEntry.get() == "":
+            showerror("Error", "Please enter a film title")
 
         else:
-            #get data from the movie database api
-            api = 'https://api.themoviedb.org/3/search/movie?api_key=f6842cb02901b733ae86df5f65bd1842&'
-            url = api + urllib.parse.urlencode({'query': SearchEntry.get()})
-            data = requests.get(url).json()
-
-            #Set displays to use for textvariable meaning it can change when reopened
-            TitleDisplay.set("N/A")
-            DirectorDisplay.set("N/A")
-            CastDisplay.set("N/A")
-            PlotDisplay.set("N/A")
-            ReleaseDisplay.set("N/A")
-            ErrorDisplay.set("")
-
-            #FIX
-            #if data['results']['total_results'] == 0:
-            #    ErrorDisplay.set("Error: No film found")
-            if 1 == 2:
-                pass
-
-            else:            
-                data = data['results'][0]
+            if SAPI.get() == "Search API 1":
+                #Get data from the omdb api
+                api = 'http://www.omdbapi.com/?'
+                key = '&apikey=e0ad0310'
+                url = api + urllib.parse.urlencode({'t': self.SearchEntry.get()}) + key
+                data = requests.get(url).json()
 
                 #Put data into a readable string with line spaces
                 filmInfo = ""
@@ -123,45 +76,110 @@ class MovieDBApplication(Frame):
                     except:
                         pass
 
+                #Set displays to use for textvariable meaning it can change when reopened
+                TitleDisplay.set("N/A")
+                DirectorDisplay.set("N/A")
+                CastDisplay.set("N/A")
+                PlotDisplay.set("N/A")
+                ReleaseDisplay.set("N/A")
                 fi = re.split(': |\n', filmInfo)
                 for i in range(0, len(fi)):
-                    if fi[i] == "imdbID":
-                        ID.set(fi[i+1])
-                    if fi[i] == "title":
+                    if fi[i] == "Title":
                         TitleDisplay.set(fi[i+1])
-                    if fi[i] == "overview":
-                        PlotDisplay.set(fi[i+1])
-                    if fi[i] == "release_date":
+                    if fi[i] == "Director":
+                        DirectorDisplay.set(fi[i+1])
+                    if fi[i] == "Actors":
+                        CastDisplay.set(fi[i+1])
+                    if fi[i] == "Plot":
+                        count = 0
+                        plot = ""
+                        for character in fi[i+1]:
+                            plot += character
+                            count+=1
+                            if count >= 60:
+                                if character == ' ':
+                                    plot += "\n"
+                                    count = 0
+                        PlotDisplay.set(plot)
+                    if fi[i] == "Released":
                         ReleaseDisplay.set(fi[i+1])
                     if fi[i] == "Error":
                         ErrorDisplay.set("Error: " + fi[i+1])
-                    AllDisplay.set(filmInfo)
-                print(fi)
+                    AllDisplay.set(filmInfo) 
 
-        #Display in results frame
-        TitleLabel2 = Label(self.ResultsFrame, textvariable = TitleDisplay)
-        TitleLabel2.grid(row = 2, column = 2)
-        DirectorLabel2 = Label(self.ResultsFrame, textvariable = DirectorDisplay)
-        DirectorLabel2.grid(row = 3, column = 2)
-        CastLabel2 = Label(self.ResultsFrame, textvariable = CastDisplay)
-        CastLabel2.grid(row = 4, column = 2)
-        PlotLabel2 = Label(self.ResultsFrame, textvariable = PlotDisplay)
-        PlotLabel2.grid(row = 5, column = 2)
-        ReleaseLabel2 = Label(self.ResultsFrame, textvariable = ReleaseDisplay)
-        ReleaseLabel2.grid(row = 6, column = 2)
-        ErrorLabel = Label(self.ResultsFrame, textvariable = ErrorDisplay)
-        ErrorLabel.grid(row = 7, column = 1, columnspan = 2)
-        MoreButton = Button(self.ResultsFrame, text = "More Info", command = lambda:self.MoreInfo(filmInfo))
-        MoreButton.grid(row = 8, column = 3, padx = 5)
-        WishListButton = Button(self.ResultsFrame, text = "Add to Wishlist", command = lambda:self.AddToWishlist(cur))
-        WishListButton.grid(row = 8, column = 2, pady = 5)
+            else:
+                #get data from the movie database api
+                api = 'https://api.themoviedb.org/3/search/movie?api_key=f6842cb02901b733ae86df5f65bd1842&'
+                url = api + urllib.parse.urlencode({'query': self.SearchEntry.get()})
+                data = requests.get(url).json()
 
-        #grid results frame, remove search frame
-        self.SearchFrame.grid_remove()
-        self.ResultsFrame.grid()
+                #Set displays to use for textvariable meaning it can change when reopened
+                TitleDisplay.set("N/A")
+                DirectorDisplay.set("N/A")
+                CastDisplay.set("N/A")
+                PlotDisplay.set("N/A")
+                ReleaseDisplay.set("N/A")
+                ErrorDisplay.set("")
+
+                if data['total_results'] == 0:
+                    ErrorDisplay.set("Error: Movie not found!")
+
+                else:
+                    data = data['results'][0]
+
+                    #Put data into a readable string with line spaces
+                    filmInfo = ""
+                    for each in data:
+                        try:
+                            filmInfo = filmInfo + str(each + ": " + data[each]) + "\n"
+                        except:
+                            pass
+
+                    fi = re.split(': |\n', filmInfo)
+                    for i in range(0, len(fi)):
+                        if fi[i] == "title":
+                            TitleDisplay.set(fi[i+1])
+                        if fi[i] == "overview":
+                            count = 0
+                            plot = ""
+                            for character in fi[i+1]:
+                                plot += character
+                                count+=1
+                                if count >= 60:
+                                    if character == ' ':
+                                        plot += "\n"
+                                        count = 0
+                            PlotDisplay.set(plot)
+                        if fi[i] == "release_date":
+                            ReleaseDisplay.set(fi[i+1])
+                        if fi[i] == "Error":
+                            ErrorDisplay.set("Error: " + fi[i+1])
+                        AllDisplay.set(filmInfo)
+
+            #Display in results frame
+            TitleLabel2 = Label(self.ResultsFrame, textvariable = TitleDisplay)
+            TitleLabel2.grid(row = 2, column = 2)
+            DirectorLabel2 = Label(self.ResultsFrame, textvariable = DirectorDisplay)
+            DirectorLabel2.grid(row = 3, column = 2)
+            CastLabel2 = Label(self.ResultsFrame, textvariable = CastDisplay)
+            CastLabel2.grid(row = 4, column = 2)
+            PlotLabel2 = Label(self.ResultsFrame, textvariable = PlotDisplay)
+            PlotLabel2.grid(row = 5, column = 2)
+            ReleaseLabel2 = Label(self.ResultsFrame, textvariable = ReleaseDisplay)
+            ReleaseLabel2.grid(row = 6, column = 2)
+            ErrorLabel = Label(self.ResultsFrame, textvariable = ErrorDisplay)
+            ErrorLabel.grid(row = 7, column = 1, columnspan = 2)
+            MoreButton = Button(self.ResultsFrame, text = "More Info", command = lambda:self.MoreInfo(filmInfo))
+            MoreButton.grid(row = 8, column = 3, padx = 5)
+            WishListButton = Button(self.ResultsFrame, text = "Add to Wishlist", command = lambda:self.AddToWishlist(cur))
+            WishListButton.grid(row = 8, column = 2, pady = 5)
+
+            #grid results frame, remove search frame
+            self.SearchFrame.grid_remove()
+            self.ResultsFrame.grid()
         
         #Clear search bar
-        SearchEntry.delete(0,END)
+        self.SearchEntry.delete(0,END)
         
         
     #Create Results frame widgets
@@ -217,7 +235,6 @@ class MovieDBApplication(Frame):
         cur.execute('SELECT Title FROM Wishlist')
         data = cur.fetchall()
         for title in data:
-            print(title)
             title2 = ""
             for character in title:
                 if character != "{" and character != "}":
@@ -229,7 +246,7 @@ class MovieDBApplication(Frame):
 
     def AddToWishlist(self,cur):
         #error note if movie is not found
-        if ID.get() == "":
+        if ErrorDisplay.get() != "":
             showerror("Error", "Movie not found, cannot add to wishlist")
         #Get data 
         else:
@@ -240,16 +257,35 @@ class MovieDBApplication(Frame):
             P = PlotDisplay.get()
             R = ReleaseDisplay.get()
             A = AllDisplay.get()
-            WishlistDetails = (imdbID, T, D, C, P, R, A)
+            WishlistDetails = (T, D, C, P, R, A)
             #Add data to database
             try:
-                cur.execute("INSERT INTO Wishlist(imdbID, Title, Director, Cast, Plot, Release, AllInfo) "+\
-                            "Values (?,?,?,?,?,?,?)", WishlistDetails)
+                cur.execute("INSERT INTO Wishlist(Title, Director, Cast, Plot, Release, AllInfo) "+\
+                            "Values (?,?,?,?,?,?)", WishlistDetails)
                 conn.commit()
                 showinfo("Wishlist", "Movie added to wishlist")
             except sqlite3.Error as e:
                 showerror("Error", "Movie already in Wishlist")
-    
+
+    #Code for generating random imdbID
+    def GetRandomFilm(self):
+        found = False
+        self.SearchEntry.delete(0,END)
+        #Keep generating random imdbIDs until one gets a response of true, aka has been assigned
+        while found == False:
+            imdbID = "tt"
+            i = 0
+            while i in range(7):
+                imdbID += str(random.randint(0,10))
+                i+=1
+            api = 'http://www.omdbapi.com/?'
+            key = '&apikey=e0ad0310'
+            url = api + urllib.parse.urlencode({'i': imdbID}) + key
+            data = requests.get(url).json()
+            if data['Response'] == "True":
+                found = True
+                #Enter title into search box
+                self.SearchEntry.insert(0,data['Title'])              
 
         
 #Main
