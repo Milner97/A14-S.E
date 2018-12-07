@@ -43,8 +43,8 @@ class MovieDBApplication(Frame):
         SearchLabel.grid(row = 2, column = 1)
         self.SearchEntry = Entry(self.SearchFrame)
         self.SearchEntry.grid(row = 2, column = 2, padx = 10)
-        SAPI.set("Search API 1")
-        SearchAPI = OptionMenu(self.SearchFrame, SAPI, "Search API 1", "Search API 2")
+        SAPI.set("Search OMDB")
+        SearchAPI = OptionMenu(self.SearchFrame, SAPI, "Search OMDB", "Search TMDB")
         SearchAPI.grid(row = 2, column = 3)
         GoButton = Button(self.SearchFrame, text = "Go",command = lambda:self.SearchFilm())
         GoButton.grid(row = 2, column = 4, padx = 5)
@@ -93,7 +93,7 @@ class MovieDBApplication(Frame):
 
         else:
             try:
-                if SAPI.get() == "Search API 1":
+                if SAPI.get() == "Search OMDB":
                     #Get data from the omdb api
                     api = 'http://www.omdbapi.com/?'
                     key = '&apikey=e0ad0310'
